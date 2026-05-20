@@ -1,23 +1,21 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
 
-// --- CONFIGURAÇÃO ÚNICA DE CORS ---
+// Configuração CRÍTICA de CORS
 app.use(cors({
-    origin: [
-        "http://localhost:5173", 
-        "https://trust-bridge-frontend.vercel.app" 
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true
+  origin: [
+    "http://localhost:5173", 
+    "https://trust-bridge-frontend.vercel.app" // <- O seu domínio oficial
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
 }));
 
 app.use(express.json());
-
 // Conexão com o MongoDB Atlas
 const uri = process.env.MONGODB_URI;
 
