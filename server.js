@@ -6,9 +6,15 @@ require('dotenv').config();
 
 const app = express();
 
-// Configurações principais
+// --- CONFIGURAÇÕES DE SEGURANÇA E PRODUÇÃO ---
+// O cors('*') permite que seu frontend na Vercel acesse a API sem bloqueios
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
+
 app.use(express.json());
-app.use(cors());
 
 // Conexão com o MongoDB Atlas
 const uri = process.env.MONGODB_URI;
@@ -17,7 +23,7 @@ mongoose.connect(uri)
     .then(() => console.log("🚀 TRUSTBRIDGE: Protocolo de Segurança Ativo!"))
     .catch(err => console.error("❌ Falha na conexão:", err.message));
 
-// --- 1. SCHEMA DE COMPLIANCE ---
+// --- SCHEMAS ---
 const ComplianceSchema = new mongoose.Schema({
     companyName: { type: String, required: true },
     documentType: { type: String, required: true },
@@ -35,7 +41,6 @@ const ComplianceSchema = new mongoose.Schema({
 
 const ComplianceModel = mongoose.model('Compliance', ComplianceSchema);
 
-// --- 2. SCHEMA DE LOGS ---
 const LogSchema = new mongoose.Schema({
     documentId: String,
     companyName: String,
@@ -47,13 +52,12 @@ const LogSchema = new mongoose.Schema({
 
 const LogModel = mongoose.model('Log', LogSchema);
 
-// --- 3. ROTAS DA API ---
+// --- ROTAS DA API ---
 
 app.get('/', (req, res) => {
     res.send("🚀 TRUSTBRIDGE GATEWAY: Ativo");
 });
 
-// Listar Ativos
 app.get('/api/modelos', async (req, res) => {
     try {
         const registros = await ComplianceModel.find().sort({ data: -1 });
@@ -63,7 +67,6 @@ app.get('/api/modelos', async (req, res) => {
     }
 });
 
-// Criar Novo Ativo
 app.post('/api/inscrever', async (req, res) => {
     try {
         const { companyName, commodity } = req.body;
@@ -84,23 +87,19 @@ app.post('/api/inscrever', async (req, res) => {
     }
 });
 
-// 🔥 ROTA DE ATUALIZAÇÃO (VERSÃO ÚNICA E CORRIGIDA)
 app.put('/api/modelos/:id', async (req, res) => {
     try {
         const { id } = req.params;
         let updates = req.body;
 
-        // 1. Limpeza Crítica para evitar conflitos no MongoDB
         delete updates._id;
         delete updates.__v;
-        delete updates.auditLog; // Fundamental para não dar erro de conflito de path
+        delete updates.auditLog;
 
-        // 2. Regra de negócio: Se aprovar, score vai para 100
         if(updates.status === "APPROVED") {
             updates.complianceScore = 100;
         }
 
-        // 3. Update com $set e $push separados
         const doc = await ComplianceModel.findByIdAndUpdate(
             id, 
             { 
@@ -112,34 +111,25 @@ app.put('/api/modelos/:id', async (req, res) => {
 
         if (!doc) return res.status(404).json({ error: "Documento não encontrado." });
         
-        console.log(`✅ SUCESSO: Documento ${id} atualizado com sucesso!`);
         res.status(200).json(doc);
     } catch (error) {
-        console.error("❌ ERRO NO UPDATE:", error.message);
         res.status(500).json({ error: "Erro na auditoria.", details: error.message });
     }
 });
 
-// 🔥 ROTA DE DELEÇÃO (ADICIONADA PARA FAZER O REJECT FUNCIONAR)
 app.delete('/api/modelos/:id', async (req, res) => {
     try {
         const { id } = req.params;
-
         const docDeletado = await ComplianceModel.findByIdAndDelete(id);
 
-        if (!docDeletado) {
-            return res.status(404).json({ error: "Documento não encontrado no banco de dados." });
-        }
-
-        console.log(`🗑️ REGISTRO REMOVIDO: Documento ${id} foi excluído com sucesso.`);
-        res.status(200).json({ message: "Asset permanently deleted from database." });
+        if (!docDeletado) return res.status(404).json({ error: "Documento não encontrado." });
+        
+        res.status(200).json({ message: "Asset permanently deleted." });
     } catch (error) {
-        console.error("❌ ERRO AO DELETAR:", error.message);
-        res.status(500).json({ error: "Erro interno ao tentar deletar o registro.", details: error.message });
+        res.status(500).json({ error: "Erro ao deletar.", details: error.message });
     }
 });
 
-// Rota de Logs
 app.post('/api/logs', async (req, res) => {
     try {
         const newLog = new LogModel(req.body);
@@ -150,11 +140,10 @@ app.post('/api/logs', async (req, res) => {
     }
 });
 
-// Porta
-const PORT = 5000;
-app.listen(PORT, () => {
+// --- PORTA DINÂMICA PARA O RENDER ---
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n============================================`);
     console.log(`✅ TrustBridge Backend v3 rodando na porta ${PORT}`);
-    console.log(`🛡️  Audit Trail & Rota de Exclusão Ativadas`);
     console.log(`============================================\n`);
 });
