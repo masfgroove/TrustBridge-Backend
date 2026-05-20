@@ -6,11 +6,13 @@ require('dotenv').config();
 
 const app = express();
 
-// --- CONFIGURAÇÕES DE SEGURANÇA E PRODUÇÃO ---
-// O cors('*') permite que seu frontend na Vercel acesse a API sem bloqueios
+// --- CONFIGURAÇÃO ÚNICA DE CORS ---
 app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: [
+        "http://localhost:5173", 
+        "https://trust-bridge-frontend.vercel.app" 
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
 }));
 
@@ -53,7 +55,6 @@ const LogSchema = new mongoose.Schema({
 const LogModel = mongoose.model('Log', LogSchema);
 
 // --- ROTAS DA API ---
-
 app.get('/', (req, res) => {
     res.send("🚀 TRUSTBRIDGE GATEWAY: Ativo");
 });
