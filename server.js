@@ -1,21 +1,28 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const crypto = require('crypto'); // Adicionado: faltava esta importação
 require('dotenv').config();
 
 const app = express();
 
-// Configuração CRÍTICA de CORS
-app.use(cors({
-  origin: [
-    "http://localhost:5173", 
-    "https://trust-bridge-frontend.vercel.app" // <- O seu domínio oficial
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  credentials: true
-}));
+// Middleware de CORS
+app.use((req, res, next) => {
+    // Permite que sua Vercel acesse a API
+    res.setHeader('Access-Control-Allow-Origin', 'https://trust-bridge-frontend.vercel.app');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    // Resposta automática para o "pré-flight" do navegador
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 app.use(express.json());
+
 // Conexão com o MongoDB Atlas
 const uri = process.env.MONGODB_URI;
 
